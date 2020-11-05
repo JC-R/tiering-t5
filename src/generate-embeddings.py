@@ -57,6 +57,14 @@ class Cleantext():
             if self.bad_content in line:
                 continue
             docid, url, js = line.split("\t")
+
+            # skip until the start document
+            if args.lastdoc:
+                if not docid == args.lastdoc:
+                    continue
+                args.lastdoc = None     # clear the flag
+                continue                # start on next cycle
+
             body = json.loads(js)["body"]
             body = re.sub(self.remove_chars, ' ', body)
             body = re.sub(self.spaces, ' ', body)
@@ -72,6 +80,9 @@ class Main():
         self.batch = []
         self.cleaner = Cleantext(args.input, args.max_size, 20)
         self.batch_size = int(args.batch_size)
+        self.postfix = args.filepostfix
+        self.maxlines = args.maxlines
+        self.currlines = 0
         if args.embeddings:
             self.vectorizer = Sentence2Vec(args.model, args.device, args.max_size)
         if args.output == "-":
@@ -79,13 +90,21 @@ class Main():
             self.compressed = False
             self.em_zf = None
         else:
-            if self.args.compressed:
-                self.cl_zf = zipfile.ZipFile(args.output + ".cleantext.gz", mode='w', compression=zipfile.ZIP_DEFLATED)
-            else:
-                self.cl_zf = open(args.output + ".cleantext.tsv", "w")
-            # embeddings always compressed
-            self.em_zf = zipfile.ZipFile(args.output + "." + args.model + ".embeddings.npz", mode='w', compression=zipfile.ZIP_DEFLATED)
+            self.new_cleantext_file()
+        self.new_vectors_file()
         sys.stderr.write("Starting....\n")
+
+    def new_cleantext_file(self):
+        postfix = ".cleantext.{}".format(self.postfix)
+        if self.args.compressed:
+            self.cl_zf = zipfile.ZipFile(args.output + postfix + ".gz", mode='w', compression=zipfile.ZIP_DEFLATED)
+        else:
+            self.cl_zf = open(args.output + postfix + ".tsv", "w")
+
+    def new_vectors_file(self):
+        # embeddings always compressed
+        postfix = ".embeddings.{}.npz".format(self.postfix)
+        self.em_zf = zipfile.ZipFile(args.output + "." + args.model + postfix, mode='w', compression=zipfile.ZIP_DEFLATED)
 
     def dump_numpy_row(self, row):
         tmpname = "{}.npy".format(self.docs[self.rowidx])
@@ -112,6 +131,7 @@ class Main():
             t1 = process_time()
             for doc, body in zip(self.docs, self.batch):
                 self.dump_cleantext_row(doc, body)
+                self.currlines += 1
             t2 = process_time()
             tt1 = t2-t1
         if self.args.embeddings:
@@ -120,14 +140,24 @@ class Main():
             t2 = process_time()
             tt2 = t2-t1
             self.dump_embedding(embeddings)
+        # advance the file postfix; close and reopen new file
+        if self.currlines >= self.maxlines:
+            self.postfix += 1
+            if self.args.compressed:
+                self.cl_zf.close()
+            self.new_cleantext_file()
+            self.em_zf.close()
+            self.new_vectors_file()
+            self.currlines = 0
         return tt1, tt2, process_time()-t0
 
     def run(self):
         start = process_time()
         for idx, (section, body) in enumerate(self.cleaner.segment()):
             self.docs.append(section)
-            self.bat ch.append(body)
+            self.batch.append(body)
             if idx > 0 and idx % self.args.batch_size == 0:
+                args.startdoc = None    # cleaer the flag
                 t1, t2, t3 = self.dump()
                 self.docs.clear()
                 self.batch.clear()
@@ -141,21 +171,30 @@ class Main():
         return (end-start)/60
 
 
-# call as main.py <input size> <max_source_size> <model>
+# call as generate-embeddings.py <input size> <max_source_size> <model>
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-s", "--max_size", type=int, required=True)
-    parser.add_argument("--input", type=str, required=True)
-    parser.add_argument("-d", "--device", type=str)
-    parser.add_argument("-b", "--batch_size", type=int, required=True)
+    parser.add_argument("-m", "--model", type=str).required
+    parser.add_argument("-s", "--max_size", type=int, required=True).required
+    parser.add_argument("--input", type=str, required=True).required
+    parser.add_argument("-d", "--device", type=str).required
+    parser.add_argument("-b", "--batch_size", type=int, required=True).required
     parser.add_argument("-c", "--cleantext", action="store_true")
     parser.add_argument("-e", "--embeddings", action="store_true")
     parser.add_argument("-o", "--output", type=str, default="-")
-    parser.add_argument("-z", "--compressed", action="store_true")
+    parser.add_argument("-z", "--compressed", action="store_true", default=True)
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--lastdoc", type=str, help="Start computations AFTER this document")
+    parser.add_argument("--filepostfix", type=int, default=0)
+    parser.add_argument("--maxlines", type=int, default=1000000)
 
     args = parser.parse_args()
     
+    if args.startdoc and not args.filepostfix:
+        sys.stderr.write("--startdoc and --filepostfix must be specified together or not at all")
+        sys.exit(-1)
+    if args.startdoc:
+        sys.stderr.write("Starting at document {}, file postix {}".format(args.startdoc, args.filepostfix))
+
     t = Main(args).run()
     sys.stderr.write("\nDone in %0.2f minutes\n" % t)
