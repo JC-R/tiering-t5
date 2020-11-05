@@ -24,7 +24,7 @@ class Sentence2Vec():
 
 class Cleantext():
 
-    def __init__(self, inputname, maxsize, padding):
+    def __init__(self, inputname, maxsize, padding, args):
         self.fname = inputname
         # allow some growth
         self.pad = padding
@@ -32,6 +32,8 @@ class Cleantext():
         self.bad_content = "bad utf-8 encoding"
         self.remove_chars = r'[\n\|/\x00-\x09\x0c\x0e-0x1f\x80-\xff]'
         self.spaces = r'  +'
+        self.args = args
+        self.totlines = 0
 
     # split the line in segments; enforce max
     def partition(self, body):
@@ -54,16 +56,17 @@ class Cleantext():
         else:
             f = open(self.fname, "r", encoding="utf8", errors="replace")
         for line in f:
+            self.totlines += 1
             if self.bad_content in line:
                 continue
             docid, url, js = line.split("\t")
 
             # skip until the start document
-            if args.lastdoc:
-                if not docid == args.lastdoc:
+            if self.args.lastdoc:
+                if not docid == self.args.lastdoc:
                     continue
-                args.lastdoc = None     # clear the flag
-                sys.stderr.write("Found skip document marker {}, starting...\n".format(args.lastdoc))
+                sys.stderr.write("Found skip document marker {}, starting...\n".format(self.args.lastdoc))
+                self.args.lastdoc = None     # clear the flag
                 continue                # start on next document
 
             body = json.loads(js)["body"]
@@ -79,7 +82,7 @@ class Main():
         self.args = args
         self.docs = []
         self.batch = []
-        self.cleaner = Cleantext(args.input, args.max_size, 20)
+        self.cleaner = Cleantext(args.input, args.max_size, 20, args)
         self.batch_size = int(args.batch_size)
         self.postfix = args.filepostfix
         self.maxlines = args.maxlines
