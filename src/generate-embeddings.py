@@ -63,7 +63,8 @@ class Cleantext():
                 if not docid == args.lastdoc:
                     continue
                 args.lastdoc = None     # clear the flag
-                continue                # start on next cycle
+                sys.stderr.write("Found skip document marker {}, starting...\n".format(args.lastdoc))
+                continue                # start on next document
 
             body = json.loads(js)["body"]
             body = re.sub(self.remove_chars, ' ', body)
@@ -157,7 +158,6 @@ class Main():
             self.docs.append(section)
             self.batch.append(body)
             if idx > 0 and idx % self.args.batch_size == 0:
-                args.startdoc = None    # cleaer the flag
                 t1, t2, t3 = self.dump()
                 self.docs.clear()
                 self.batch.clear()
@@ -190,11 +190,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    if args.startdoc and not args.filepostfix:
-        sys.stderr.write("--startdoc and --filepostfix must be specified together or not at all")
+    if args.lastdoc and not args.filepostfix:
+        sys.stderr.write("--lastdoc and --filepostfix must be specified together or not at all")
         sys.exit(-1)
-    if args.startdoc:
-        sys.stderr.write("Starting at document {}, file postix {}".format(args.startdoc, args.filepostfix))
+    if args.lastdoc:
+        sys.stderr.write("Skipping past document {}, file postix {}".format(args.lastdoc, args.filepostfix))
 
     t = Main(args).run()
     sys.stderr.write("\nDone in %0.2f minutes\n" % t)
