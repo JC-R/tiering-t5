@@ -6,7 +6,7 @@
 #   segment batch size -> 3000
 
 # process #segment_batch_lines as the multiple of encode_batch and # workers
-let w=$3*$2
+w=(($3*$2))
 
 APPDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
