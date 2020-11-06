@@ -104,6 +104,7 @@ class Main():
         self.new_vectors_file()
         sys.stderr.write("Starting....\n")
 
+    # using gz format for universal compatibilty; change if more compression needed
     def new_cleantext_file(self):
         postfix = ".cleantext.{}".format(self.postfix)
         if self.args.compressed:
@@ -111,6 +112,7 @@ class Main():
         else:
             self.cl_zf = open(args.output + postfix + ".tsv", "w")
 
+    # using gz format for universal compatibilty; change if more compression needed
     def new_vectors_file(self):
         # embeddings always compressed
         postfix = ".embeddings.{}.npz".format(self.postfix)
