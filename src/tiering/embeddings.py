@@ -32,16 +32,16 @@ class Embeddings:
         self.new_vectors_file()
         sys.stderr.write("Starting....\n")
 
-    # using gz format for universal compatibility;
+    # using zip format for universal compatibility;
     # change if more compression needed or and your os supports it; i.e. 7z
     def new_cleantext_file(self):
         postfix = ".cleantext.{}".format(self.postfix)
         if self.args.compressed:
-            self.cl_zf = zipfile.ZipFile(self.args.output + postfix + ".gz", mode='w', compression=zipfile.ZIP_DEFLATED)
+            self.cl_zf = zipfile.ZipFile(self.args.output + postfix + ".zip", mode='w', compression=zipfile.ZIP_DEFLATED)
         else:
             self.cl_zf = open(self.args.output + postfix + ".tsv", "w")
 
-    # using gz format for universal compatibility;
+    # using zip format for universal compatibility;
     # change if more compression needed or and your os supports it; i.e. 7z
     def new_vectors_file(self):
         # embeddings always compressed
