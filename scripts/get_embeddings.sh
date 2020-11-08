@@ -21,6 +21,7 @@ fi
 
 # process #segment_batch_lines as the multiple of encode_batch and # workers
 w=$(($3 * $2))
+# echo $w
 
 APPDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 

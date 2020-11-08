@@ -64,6 +64,7 @@ class Cleantext:
                 body = re.sub(self.remove_chars, ' ', body)
                 body = re.sub(self.spaces, ' ', body)
             else:
-                for idx, section in enumerate(self.partition(content)):
-                    yield docid + "." + str(idx), section
+                body = content
+            for idx, section in enumerate(self.partition(body)):
+                yield docid + "." + str(idx), section
 
