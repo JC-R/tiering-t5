@@ -8,7 +8,7 @@ from pprint import pprint
 from milvus import Milvus, DataType
 
 
-class NYUMilvus():
+class MyMilvus():
 
     def __init__(self, name, host, port, collection_param):
         self.host = host

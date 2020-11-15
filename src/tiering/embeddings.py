@@ -95,7 +95,7 @@ class Embeddings:
 
     def run(self):
         start = process_time()
-        for idx, (section, body) in enumerate(self.cleaner.segment()):
+        for idx, (totlines, section, body) in enumerate(self.cleaner.segment()):
             self.docs.append(section)
             self.batch.append(body)
             if idx > 0 and idx % self.args.segment_batch_size == 0:
@@ -103,9 +103,10 @@ class Embeddings:
                 self.docs.clear()
                 self.batch.clear()
                 if self.args.verbose:
-                    sys.stderr.write("\r%d: %0.4f , %0.4f, %0.4f" % (idx, (t1/self.segment_batch_size), (self.segment_batch_size/t2), t3/self.args.segment_batch_size))
+                    sys.stderr.write("\r%d (%d): %0.4f , %0.4f, %0.4f" % (totlines, idx, (t1/self.segment_batch_size),
+                                                          (self.segment_batch_size/t2), t3/self.args.segment_batch_size))
                 else:
-                    sys.stderr.write("\r%d" % idx)
+                    sys.stderr.write("\r%d (%d)" % (totlines, idx))
         if len(self.docs) > 0:
             self.dump()
         end = process_time()

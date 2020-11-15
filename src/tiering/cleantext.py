@@ -56,8 +56,8 @@ class Cleantext:
                         sys.stderr.write("\rSearching for {} ... lines: {} ".format(self.args.lastdoc, self.totlines))
                     continue
                 sys.stderr.write("found at line {} line\n".format(self.totlines))
-                self.args.lastdoc = None     # clear the flag
-                continue                # start on next document
+                self.args.lastdoc = None  # clear the flag
+                continue  # start on next document
 
             if self.args.is_json:
                 body = json.loads(content)["body"]
@@ -66,5 +66,4 @@ class Cleantext:
             else:
                 body = content
             for idx, section in enumerate(self.partition(body)):
-                yield docid + "." + str(idx), section
-
+                yield self.totlines, docid + "." + str(idx), section
