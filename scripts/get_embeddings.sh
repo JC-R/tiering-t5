@@ -10,7 +10,7 @@ fi
 
 #clear
 
-# on my PC, GeForce RTX-1080ti 11Gb, this takes about 9.Gb of gpu ram
+# on my GeForce RTX-1080ti 11Gb, this takes about 9.Gb of gpu ram
 #   num_workers = 10
 #   encode_batch_size = 300
 #   segment batch size -> 3000
