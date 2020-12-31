@@ -4,6 +4,13 @@ import tensorflow as tf
 from .document_processor import DocumentProcessor
 
 
+# splice a tensor
+def tf_splice(tensor, _start=0, _end=None):
+    start = tf.constant(0) if _start is None else tf.constant(_start)
+    end = tf.constant(len(tensor)) if _end is None else tf.constant(_end)
+    return tensor[start:end]
+
+
 class T5Processor:
 
     def __init__(self, model="t5-base"):
@@ -29,16 +36,20 @@ class T5Processor:
         self.embeddings['word'] = encodings[0]
         return self
 
-    def paragraph_embeddings(self):
+    # compute paragraph embeddings given a range or all
+    def paragraph_embeddings(self, _start=0, _end=None):
         if self.embeddings['paragraphs'] is None:
-            self.embeddings['paragraphs'] = tf.reduce_mean(self.embeddings['word'], axis=1)
+            tensor = tf_splice(self.embeddings['word'], _start=_start, _end=_end)
+            self.embeddings['paragraphs'] = tf.reduce_mean(tensor, axis=1)
         return self.embeddings['paragraphs']
 
-    def doc_embeddings(self):
+    # compute doc embeddings given a range or all
+    def doc_embeddings(self, _start=0, _end=None):
         if self.embeddings['paragraphs'] is None:
-            self.paragraph_embeddings()
+            self.paragraph_embeddings(_start=_start, _end=_end)
         if self.embeddings['doc'] is None:
-            self.embeddings['doc'] = tf.reduce_mean(self.embeddings['paragraphs'], axis=0)
+            tensor = tf_splice(self.embeddings['paragraphs'], _start=_start, _end=_end)
+            self.embeddings['doc'] = tf.reduce_mean(tensor, axis=0)
         return self.embeddings['doc']
 
     # T5 text2text summarization (requires .fit(..., task="summarize:")
@@ -51,4 +62,3 @@ class T5Processor:
         for ids in self.outputs:
             print(self.tokenizer.decode(ids))
         return self
-
