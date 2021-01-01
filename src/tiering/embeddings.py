@@ -5,6 +5,7 @@ import numpy as np
 
 from .cleantext import Cleantext
 from .sentence2vec import Sentence2Vec
+from .T5Processor import T5Processor
 
 
 class Embeddings:
@@ -13,16 +14,19 @@ class Embeddings:
         self.args = args
         self.docs = []
         self.batch = []
-        self.cleaner = Cleantext(args.input, args.max_doc_size, 20, args)
+        self.cleaner = Cleantext(args.input, args.max_doc_words, args)
         self.segment_batch_size = int(args.segment_batch_size)
         self.encode_batch_size = args.encode_batch_size
         self.postfix = args.filepostfix
         self.maxlines = args.maxlines
         self.currlines = 0
         self.input_format = args.input_format
-
+        self.t5 = args.t5
         if args.embeddings:
-            self.vectorizer = Sentence2Vec(args.model, args.device, args.encode_batch_size, args.num_workers)
+            if self.t5:
+                self.vectorizer = T5Processor(args.model, batch_size=args.encode_batch_size)
+            else:
+                self.vectorizer = Sentence2Vec(args.model, args.device, args.encode_batch_size, args.num_workers)
         if args.output == "-":
             self.cl_zf = sys.stdout
             self.compressed = False
@@ -33,7 +37,7 @@ class Embeddings:
         sys.stderr.write("Starting....\n")
 
     # using zip format for universal compatibility;
-    # change if more compression needed or and your os supports it; i.e. 7z
+    # change if more compression needed (e.g. if your OS supports it; i.e. 7z)
     def new_cleantext_file(self):
         postfix = ".cleantext.{}".format(self.postfix)
         if self.args.compressed:
@@ -42,7 +46,7 @@ class Embeddings:
             self.cl_zf = open(self.args.output + postfix + ".tsv", "w")
 
     # using zip format for universal compatibility;
-    # change if more compression needed or and your os supports it; i.e. 7z
+    # change if more compression needed (e.g. if your OS supports it; i.e. 7z)
     def new_vectors_file(self):
         # embeddings always compressed
         postfix = ".embeddings.{}.npz".format(self.postfix)
@@ -78,7 +82,7 @@ class Embeddings:
             tt1 = t2-t1
         if self.args.embeddings:
             t1 = process_time()
-            embeddings = self.vectorizer.embeddings(self.batch)
+            embeddings = self.vectorizer.get_embeddings(self.batch, self.cleaner.doc_processor.doc_groups)
             t2 = process_time()
             tt2 = t2-t1
             self.dump_embedding(embeddings)
@@ -95,10 +99,10 @@ class Embeddings:
 
     def run(self):
         start = process_time()
-        for idx, (totlines, section, body) in enumerate(self.cleaner.segment()):
+        for idx, (totlines, section, body, eod) in enumerate(self.cleaner.segment()):
             self.docs.append(section)
             self.batch.append(body)
-            if idx > 0 and idx % self.args.segment_batch_size == 0:
+            if eod and len(self.docs) > self.args.segment_batch_size:
                 t1, t2, t3 = self.dump()
                 self.docs.clear()
                 self.batch.clear()
@@ -111,5 +115,4 @@ class Embeddings:
             self.dump()
         end = process_time()
         return (end-start)/60
-
 

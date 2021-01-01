@@ -8,7 +8,8 @@ from tiering.embeddings import Embeddings
 # call as generate-embeddings.py <input size> <max_source_size> <model>
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--model", type=str)
-parser.add_argument("-s", "--max_doc_size", type=int, required=True)
+parser.add_argument("--t5", action="store_true", help="Use T5 embeddings")
+parser.add_argument("-s", "--max_doc_words", type=int, required=True, help="Max # words per sequence")
 parser.add_argument("--input", type=str, required=True)
 parser.add_argument("-d", "--device", type=str)
 parser.add_argument("-b", "--segment_batch_size", type=int, required=True)

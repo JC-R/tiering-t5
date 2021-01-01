@@ -1,5 +1,6 @@
 from transformers import TFT5ForConditionalGeneration, T5Tokenizer
 import tensorflow as tf
+import numpy as np
 
 from .document_processor import DocumentProcessor
 
@@ -13,7 +14,7 @@ def tf_splice(tensor, _start=0, _end=None):
 
 class T5Processor:
 
-    def __init__(self, model="t5-base"):
+    def __init__(self, model="t5-base", batch_size=32):
         self.model = TFT5ForConditionalGeneration.from_pretrained(model)
         self.tokenizer = T5Tokenizer.from_pretrained(model)
         # T5 uses a max_length of 512 so we cut the article to 450 tokens to allow t5 'normalization'
@@ -21,6 +22,7 @@ class T5Processor:
         self.input_ids = None
         self.embeddings = {'word': None, 'doc': None, 'paragraphs': None}
         self.outputs = None
+        self.batch_size = batch_size
 
     def split(self, document, max_words=450, truncate=False, task=""):
         return self.doc_processor.split(document, max_words=max_words, truncate=truncate, prefix=task)
@@ -43,7 +45,7 @@ class T5Processor:
             self.embeddings['paragraphs'] = tf.reduce_mean(tensor, axis=1)
         return self.embeddings['paragraphs']
 
-    # compute doc embeddings given a range or all
+    # compute doc embeddings [subgroups, if given a range]
     def doc_embeddings(self, _start=0, _end=None):
         if self.embeddings['paragraphs'] is None:
             self.paragraph_embeddings(_start=_start, _end=_end)
@@ -51,6 +53,23 @@ class T5Processor:
             tensor = tf_splice(self.embeddings['paragraphs'], _start=_start, _end=_end)
             self.embeddings['doc'] = tf.reduce_mean(tensor, axis=0)
         return self.embeddings['doc']
+
+    #
+    def get_embeddings(self, batch, groups=None):
+        s = len(batch)
+        start = 0
+        end = self.batch_size
+        embeddings = None
+        while start < s:
+            self.fit(batch[start:end], split=False)
+            self.paragraph_embeddings()
+            if embeddings is None:
+                embeddings = self.embeddings['paragraphs'].numpy()
+            else:
+                embeddings = np.append(embeddings, self.embeddings['paragraphs'].numpy(), axis=0)
+            start += self.batch_size
+            end += self.batch_size
+        return embeddings
 
     # T5 text2text summarization (requires .fit(..., task="summarize:")
     def summarize(self, max_length=125, min_length=None):

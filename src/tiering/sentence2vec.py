@@ -10,5 +10,5 @@ class Sentence2Vec():
         self.num_workers = num_workers
         self.batch = 0
 
-    def embeddings(self, batch):
+    def get_embeddings(self, batch, groups=None):
         return self.model.encode(batch, self.batch_size, num_workers=self.num_workers)

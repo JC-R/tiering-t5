@@ -2,39 +2,34 @@ import json
 import re
 import sys
 
+from .document_processor import DocumentProcessor
+
 
 class Cleantext:
 
-    def __init__(self, inputname, max_doc_size, padding, args):
+    def __init__(self, inputname, max_tokens, args):
         self.fname = inputname
-        # allow some growth
-        self.pad = padding
-        self.docsize = max_doc_size - self.pad
         self.bad_content = "bad utf-8 encoding"
-        self.remove_chars = r'[\n\|/\x00-\x09\x0c\x0e-0x1f\x80-\xff]'
-        self.spaces = r'  +'
         self.args = args
         self.totlines = 0
         self.input_format = args.input_format
         self.is_json = args.is_json
+        self.doc_processor = DocumentProcessor()
+        self.max_words = max_tokens
+        self.remove_chars = re.compile(r'[\n\|/\x00-\x09\x0c-\x1f\x80-\xff]')
+        self.multiple_spaces = re.compile(r'  +')
 
-    # split the input line into maxsize segments; (enforce max)
+    # split an input into maxsize segments; (enforce max # tokens)
     def partition(self, body):
-        if self.args.truncate:
-            l = min(len(body), self.docsize)
-            yield body[0:l].strip()
-        else:
-            start = 0
-            end = self.docsize
-            size = len(body)
-            while start < size:
-                # split at period, space or eol
-                while (end - start) < (self.docsize + self.pad) and end < size and not (body[end] in [' ', "."]):
-                    end += 1
-                yield body[start:end].strip()
-                start = end
-                end += self.docsize
+        docs = self.doc_processor.split(body, max_words=self.max_words, truncate=self.args.truncate)
+        size = len(docs)
+        idx = 0
+        for doc in docs:
+            idx += 1
+            yield doc, idx == size
 
+    # process input from corpus
+    #   segment is tsv:   docid \t url \t json-body
     def segment(self):
         if self.fname == "-":
             # this requires python 3.7+
@@ -61,9 +56,9 @@ class Cleantext:
 
             if self.args.is_json:
                 body = json.loads(content)["body"]
-                body = re.sub(self.remove_chars, ' ', body)
-                body = re.sub(self.spaces, ' ', body)
+                body = self.remove_chars.sub(' ', body)
+                body = self.multiple_spaces.sub(' ', body)
             else:
                 body = content
-            for idx, section in enumerate(self.partition(body)):
-                yield self.totlines, docid + "." + str(idx), section
+            for idx, (section, eod) in enumerate(self.partition(body)):
+                yield self.totlines, docid + "." + str(idx), section, eod

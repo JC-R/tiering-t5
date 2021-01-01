@@ -22,7 +22,8 @@ $APPDIR/get_embeddings.sh $1 $2 $3 --lastdoc=$4 --filepostfix=$5
 #7z e -so cleantext/$1.cleantext.json.7z | LC_ALL=C tr -dc '\0-\177' | python $APPDIR/../src/generate-embeddings.py \
 #--input - \
 #--model t5-base \
-#--max_doc_size 500 \
+#--t5 \
+#--max_doc_words 450 \
 #--device cuda \
 #--cleantext \
 #--embeddings \

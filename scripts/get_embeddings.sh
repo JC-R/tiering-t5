@@ -10,11 +10,12 @@ fi
 
 #clear
 
-# on my GeForce RTX-1080ti 11Gb, this takes about 9.Gb of gpu ram
+# on GeForce RTX-1080ti 11Gb, about 9.Gb of gpu ram
 #   num_workers = 10
 #   encode_batch_size = 300
 #   segment batch size -> 3000
-# on my RTX2080TI, about 9.7Gb
+
+# on GeForce RTX2080TI, about 9.7Gb of gpu ram
 #   num_workers = 50
 #   encode_batch_size = 200
 #   segment batch size -> 10000
@@ -32,9 +33,9 @@ pushd $APPDIR/../src
 --input_format tsv \
 --is_json \
 --model t5-base \
---max_doc_size 500 \
+--t5 \
+--max_doc_words 450 \
 --device cuda \
---cleantext \
 --embeddings \
 --compressed \
 --verbose \
@@ -48,6 +49,7 @@ $5 \
 $6 \
 $7
 
-#--truncate
+#--truncate \
+#--cleantext \
 
 popd
