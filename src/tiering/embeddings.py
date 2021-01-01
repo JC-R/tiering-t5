@@ -3,14 +3,32 @@ import zipfile
 from time import process_time
 import numpy as np
 
+import tensorflow as tf
 from .cleantext import Cleantext
 from .sentence2vec import Sentence2Vec
 from .T5Processor import T5Processor
 
 
+#  initialize the GPU environment
+def init_gpu():
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            #  allow incremental memory growth
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
+
 class Embeddings:
 
     def __init__(self, args):
+        # init_gpu()
         self.args = args
         self.segments = []
         self.batch = []
