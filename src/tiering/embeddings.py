@@ -32,7 +32,9 @@ class Embeddings:
             self.compressed = False
             self.em_zf = None
         else:
-            self.new_cleantext_file()
+            if self.args.cleantext:
+                self.new_cleantext_file()
+
         self.new_vectors_file()
         sys.stderr.write("Starting....\n")
 
@@ -87,7 +89,7 @@ class Embeddings:
             tt2 = t2-t1
             self.dump_embedding(embeddings)
         # advance the file postfix; close and reopen new file
-        if self.currlines >= self.maxlines:
+        if 0 < self.maxlines <= self.currlines:
             self.postfix += 1
             if self.args.compressed:
                 self.cl_zf.close()
