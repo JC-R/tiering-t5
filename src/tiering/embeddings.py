@@ -12,7 +12,7 @@ class Embeddings:
 
     def __init__(self, args):
         self.args = args
-        self.docs = []
+        self.segments = []
         self.batch = []
         self.cleaner = Cleantext(args.input, args.max_doc_words, args)
         self.segment_batch_size = int(args.segment_batch_size)
@@ -53,7 +53,7 @@ class Embeddings:
         self.em_zf = zipfile.ZipFile(self.args.output + "." + self.args.model + postfix, mode='w', compression=zipfile.ZIP_DEFLATED)
 
     def dump_numpy_row(self, row):
-        tmpname = "{}.npy".format(self.docs[self.rowidx])
+        tmpname = "{}.npy".format(self.cleaner.documents[self.rowidx])
         self.em_zf.writestr(tmpname, row.tobytes())
         self.rowidx += 1
 
@@ -75,7 +75,7 @@ class Embeddings:
         t0 = process_time()
         if self.args.cleantext:
             t1 = process_time()
-            for doc, body in zip(self.docs, self.batch):
+            for doc, body in zip(self.segments, self.batch):
                 self.dump_cleantext_row(doc, body)
                 self.currlines += 1
             t2 = process_time()
@@ -99,20 +99,20 @@ class Embeddings:
 
     def run(self):
         start = process_time()
-        for idx, (totlines, section, body, eod) in enumerate(self.cleaner.segment()):
-            self.docs.append(section)
+        for idx, (totlines, segment, body, eod) in enumerate(self.cleaner.next_record()):
+            self.segments.append(segment)
             self.batch.append(body)
-            if eod and len(self.docs) > self.args.segment_batch_size:
+            if eod and len(self.segments) > self.args.segment_batch_size:
                 t1, t2, t3 = self.dump()
-                self.docs.clear()
+                self.segments.clear()
                 self.batch.clear()
-                self.cleaner.doc_processor.clear()
+                self.cleaner.clear()
                 if self.args.verbose:
                     sys.stderr.write("\r%d (%d): %0.4f , %0.4f, %0.4f" % (totlines, idx, (t1/self.segment_batch_size),
                                                           (self.segment_batch_size/t2), t3/self.args.segment_batch_size))
                 else:
                     sys.stderr.write("\r%d (%d)" % (totlines, idx))
-        if len(self.docs) > 0:
+        if len(self.segments) > 0:
             self.dump()
         end = process_time()
         return (end-start)/60

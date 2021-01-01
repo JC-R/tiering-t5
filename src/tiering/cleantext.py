@@ -12,6 +12,7 @@ class Cleantext:
         self.bad_content = "bad utf-8 encoding"
         self.args = args
         self.totlines = 0
+        self.documents = []
         self.input_format = args.input_format
         self.is_json = args.is_json
         self.doc_processor = DocumentProcessor()
@@ -30,7 +31,7 @@ class Cleantext:
 
     # process input from corpus
     #   segment is tsv:   docid \t url \t json-body
-    def segment(self):
+    def next_record(self):
         if self.fname == "-":
             # this requires python 3.7+
             # sys.stdin.reconfigure(errors="replace")
@@ -54,6 +55,8 @@ class Cleantext:
                 self.args.lastdoc = None  # clear the flag
                 continue  # start on next document
 
+            self.documents.append(docid)
+
             if self.args.is_json:
                 body = json.loads(content)["body"]
                 body = self.remove_chars.sub(' ', body)
@@ -62,3 +65,7 @@ class Cleantext:
                 body = content
             for idx, (section, eod) in enumerate(self.partition(body)):
                 yield self.totlines, docid + "." + str(idx), section, eod
+
+    def clear(self):
+        self.doc_processor.clear()
+        self.documents.clear()
