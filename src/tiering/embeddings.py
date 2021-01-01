@@ -106,6 +106,7 @@ class Embeddings:
                 t1, t2, t3 = self.dump()
                 self.docs.clear()
                 self.batch.clear()
+                self.cleaner.doc_processor.clear()
                 if self.args.verbose:
                     sys.stderr.write("\r%d (%d): %0.4f , %0.4f, %0.4f" % (totlines, idx, (t1/self.segment_batch_size),
                                                           (self.segment_batch_size/t2), t3/self.args.segment_batch_size))

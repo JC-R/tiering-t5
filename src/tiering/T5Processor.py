@@ -40,36 +40,39 @@ class T5Processor:
 
     # compute paragraph embeddings given a range or all
     def paragraph_embeddings(self, _start=0, _end=None):
-        if self.embeddings['paragraphs'] is None:
-            tensor = tf_splice(self.embeddings['word'], _start=_start, _end=_end)
-            self.embeddings['paragraphs'] = tf.reduce_mean(tensor, axis=1)
+        tensor = tf_splice(self.embeddings['word'], _start=_start, _end=_end)
+        self.embeddings['paragraphs'] = tf.reduce_mean(tensor, axis=1)
         return self.embeddings['paragraphs']
 
-    # compute doc embeddings [subgroups, if given a range]
+    # compute doc embeddings by range
     def doc_embeddings(self, _start=0, _end=None):
-        if self.embeddings['paragraphs'] is None:
-            self.paragraph_embeddings(_start=_start, _end=_end)
-        if self.embeddings['doc'] is None:
-            tensor = tf_splice(self.embeddings['paragraphs'], _start=_start, _end=_end)
-            self.embeddings['doc'] = tf.reduce_mean(tensor, axis=0)
+        self.paragraph_embeddings(_start=_start, _end=_end)
+        tensor = tf_splice(self.embeddings['paragraphs'], _start=_start, _end=_end)
+        self.embeddings['doc'] = tf.reduce_mean(tensor, axis=0)
         return self.embeddings['doc']
 
-    #
-    def get_embeddings(self, batch, groups=None):
-        s = len(batch)
+    # compute doc embeddings
+    def get_embeddings(self, documents, groupings=None):
+        s = len(documents)
         start = 0
         end = self.batch_size
         embeddings = None
+        # compute embeddings it in batches
         while start < s:
-            self.fit(batch[start:end], split=False)
-            self.paragraph_embeddings()
+            self.fit(documents[start:end], split=False).paragraph_embeddings()
             if embeddings is None:
-                embeddings = self.embeddings['paragraphs'].numpy()
+                embeddings = self.embeddings['paragraphs']
             else:
-                embeddings = np.append(embeddings, self.embeddings['paragraphs'].numpy(), axis=0)
+                embeddings = tf.concat([embeddings, self.embeddings['paragraphs']], axis=0)
             start += self.batch_size
             end += self.batch_size
-        return embeddings
+
+        # use a mean pooling layer to compute doc embeddings
+        tensor_list = tf.split(embeddings, groupings)
+        results = np.zeros(shape=[len(groupings), 768], dtype=np.float32)
+        for idx, t in enumerate(tensor_list):
+            results[idx] = tf.reduce_mean(t, axis=0).numpy()
+        return results
 
     # T5 text2text summarization (requires .fit(..., task="summarize:")
     def summarize(self, max_length=125, min_length=None):
