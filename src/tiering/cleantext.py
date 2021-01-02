@@ -19,6 +19,11 @@ class Cleantext:
         self.max_words = max_tokens
         self.remove_chars = re.compile(r'[\n\|/\x00-\x09\x0c-\x1f\x80-\xff]')
         self.multiple_spaces = re.compile(r'  +')
+        self.doclist = None
+        if args.doclist:
+            sys.stderr.write("Using document filtering....\n")
+            self.doclist = set(line.strip() for line in open(args.doclist, 'r'))
+
 
     # split an input into maxsize segments; (enforce max # tokens)
     def partition(self, body):
@@ -44,6 +49,10 @@ class Cleantext:
                 continue
 
             docid, url, content = line.split("\t" if self.input_format == 'tsv' else ',')
+
+            if self.doclist:
+                if docid not in self.doclist:
+                    continue
 
             # resuming from a previous run: skip until the start document marker
             if self.args.lastdoc:

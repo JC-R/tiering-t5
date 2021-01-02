@@ -1,0 +1,2 @@
+numpy~=1.19.2
+transformers~=3.3.1

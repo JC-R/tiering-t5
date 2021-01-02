@@ -26,7 +26,7 @@ parser.add_argument("--is_json", action="store_true")
 parser.add_argument("--truncate",  action="store_true")
 parser.add_argument("--lastdoc", type=str, help="Start computations AFTER this document")
 parser.add_argument("--filepostfix", type=int, default=0)
-parser.add_argument("--doclist", type=str, help="Input document filter list; only do docs in this file")
+parser.add_argument("--doclist", type=str, help="Input document filter list; only do docs in this file", default=None)
 
 args = parser.parse_args()
 
