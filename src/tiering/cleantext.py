@@ -12,6 +12,7 @@ class Cleantext:
         self.bad_content = "bad utf-8 encoding"
         self.args = args
         self.totlines = 0
+        self.actual_lines = 0
         self.documents = []
         self.input_format = args.input_format
         self.is_json = args.is_json
@@ -73,7 +74,7 @@ class Cleantext:
             else:
                 body = content
             for idx, (section, eod) in enumerate(self.partition(body)):
-                yield self.totlines, docid + "." + str(idx), section, eod
+                yield self.totlines, self.actual_lines, docid + "." + str(idx), section, eod
 
     def clear(self):
         self.doc_processor.clear()
